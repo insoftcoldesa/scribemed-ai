@@ -171,6 +171,36 @@
     section[data-screen][hidden] {
       display: none !important
     }
+
+    .ux-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(11, 28, 48, .55);
+    }
+
+    .ux-modal-backdrop[hidden] {
+      display: none !important;
+    }
+
+    .ux-dialog {
+      width: min(100%, 34rem);
+      max-height: 90vh;
+      overflow: auto;
+      background: white;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .25);
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 
@@ -266,7 +296,36 @@
         </div>
       </header>
       <!-- ÁREA DE CONTENIDO PRINCIPAL: margin-left de 80px (ml-20) para NUNCA solapar -->
+               <div class="ux-modal-backdrop" id="consentModal" role="dialog" aria-modal="true" aria-labelledby="consentTitle" style="display: none;">
+          <div class="ux-dialog">
+            <h2 id="consentTitle" class="text-lg font-bold">Consentimiento antes de la captura simulada</h2>
+            <p class="mt-2 text-sm">Este prototipo solo representa una captura. No activa el micrófono ni transmite
+              audio. En un sistema real, obtenga y registre el consentimiento de las personas involucradas antes de
+              capturar.</p>
+            <label class="mt-4 flex gap-2 items-start text-sm"><input id="consentCheckbox" type="checkbox"
+                class="mt-1"><span>Confirmo que se obtuvo el consentimiento requerido para iniciar esta
+                demostración.</span></label>
+            <div class="mt-5 flex justify-end gap-2"><button type="button" onclick="window.cancelConsent()"
+                class="px-3 py-2 rounded-lg border">Cancelar</button><button id="consentContinueButton" type="button"
+                onclick="window.confirmConsentAndStart()" disabled
+                class="px-3 py-2 rounded-lg bg-blue-700 text-white">Continuar</button></div>
+          </div>
+        </div>
       <main class="flex-1 ml-20 p-4 lg:p-5 bg-background min-h-[calc(100vh-4rem)]">
+
+        <div class="ux-modal-backdrop" id="resetConfirmModal" hidden role="dialog" aria-modal="true"
+          aria-labelledby="resetTitle">
+          <div class="ux-dialog">
+            <h2 id="resetTitle" class="text-lg font-bold">¿Reiniciar esta simulación?</h2>
+            <p class="mt-2 text-sm">Se borrarán de la pantalla la conversación simulada, el cronómetro y el contenido
+              SOAP generado en esta sesión. El reinicio no borra las versiones locales de los campos editables. Esta
+              acción no se puede deshacer para la sesión.</p>
+            <div class="mt-5 flex justify-end gap-2"><button type="button" onclick="window.cancelResetSimulation()"
+                class="px-3 py-2 rounded-lg border">Seguir en la consulta</button><button type="button"
+                onclick="window.confirmResetSimulation()" class="px-3 py-2 rounded-lg bg-rose-700 text-white">Reiniciar
+                y descartar sesión</button></div>
+          </div>
+        </div>
         <div class="flex flex-col w-full gap-4 max-w-[1720px] mx-auto">
           <!-- SUB-HEADER CONTEXTUAL DE CONSULTA -->
           <div
@@ -313,6 +372,10 @@
                 <span id="btnMainLabel" class="">Iniciar Consulta en Vivo</span>
               </button>
             </div>
+          </div>
+
+          <div class="mx-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-950" role="alert">
+            <strong>Alergia para revisar antes de medicamentos: Penicilina.</strong>
           </div>
           <!-- WORKBENCH 3 COLUMNAS -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
@@ -655,7 +718,7 @@
                             </div>
                             <span
                               class="bg-emerald-50 text-emerald-800 font-bold text-[10px] px-1.5 py-0.5 rounded border border-emerald-200">
-                              Codificado CIE-10 &amp; Rx Aprobada ✓
+                              Sugerencias de IA · pendientes de revisión
                             </span>
                           </div>
                           <div class="flex flex-wrap gap-1 text-[10px]">
@@ -881,9 +944,7 @@
 
 
 
-    <a href="#consulta-v1"
-      class="fixed bottom-4 right-4 z-[60] flex items-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-xl px-3 py-2 shadow-md text-sm font-semibold hover:bg-slate-50"><span
-        class="material-symbols-outlined text-[18px]">compare</span>Comparar con versión anterior</a>
+
   </section>
   <section data-screen="resumen" data-title="Resumen y validación"
     class="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen" hidden>
@@ -1009,12 +1070,13 @@
                 </button>
                 <button
                   class="px-space-md py-1.5 rounded-lg bg-primary-container text-on-primary hover:bg-primary font-label-md text-label-md shadow-sm transition-all flex items-center gap-1.5"
-                  onclick="document.getElementById('signatureModal').classList.toggle('hidden')" type="button">
+                  onclick="window.openSignatureFlow()" type="button" id="openSignatureButton" disabled>
                   <span class="material-symbols-outlined text-base">draw</span>
-                  Validar y Firmar
+                  Firmar nota (paso posterior)
                 </button>
               </div>
             </div>
+
             <!-- Multi-stage Clinical Pipeline Tracker -->
             <div
               class="w-full bg-surface-container-low rounded-xl p-space-sm flex flex-col md:flex-row items-center justify-between gap-space-sm">
@@ -1046,11 +1108,36 @@
                   <span class="material-symbols-outlined text-sm">verified</span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-label-sm text-label-sm font-semibold text-on-surface-variant">3. Firma Digital y
-                    Despacho HL7</span>
+                  <span class="font-label-sm text-label-sm font-semibold text-on-surface-variant">3. Firma simulada
+                    (paso separado)</span>
                   <span class="font-body-sm text-body-sm text-outline">Pendiente de autorización</span>
                 </div>
               </div>
+            </div>
+            <div
+              class="w-full rounded-xl border border-blue-200 bg-blue-50 p-3 flex flex-wrap items-center justify-between gap-3">
+              <div><strong class="text-sm text-blue-950">Paso 2: Revisión y validación (simulación)</strong>
+                <p id="clinicalValidationStatus" class="text-xs text-blue-900">Pendiente: revise la nota y las
+                  discrepancias de demostración. La firma simulada seguirá bloqueada hasta completar este paso.</p>
+                <label class="mt-2 flex items-start gap-2 text-xs text-blue-950"><input id="reviewAcknowledgement"
+                    type="checkbox" class="mt-0.5"><span>He revisado las discrepancias identificadas y entiendo que el
+                    prototipo no determina cuál dato es correcto.</span></label>
+              </div>
+              <button id="clinicalValidationButton" type="button" onclick="window.markClinicalValidated()" disabled
+                class="px-3 py-2 rounded-lg bg-blue-700 text-white text-sm font-semibold">Marcar revisión como
+                completada</button>
+            </div>
+            <div class="w-full rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950" role="note">
+              <strong>Alergia visible durante revisión de medicamentos: Penicilina.</strong>
+            </div>
+            <div class="w-full rounded-xl border border-slate-200 bg-white p-3 flex items-center justify-between gap-3">
+              <div><strong class="text-sm">Recuperación de edición</strong>
+                <p id="editRecoveryStatus" class="text-xs text-slate-600">Se conserva una versión local de demostración
+                  al editar campos de texto.</p>
+              </div>
+              <button type="button" onclick="window.undoLastEdit()"
+                class="px-3 py-2 rounded-lg border border-slate-300 text-sm" id="undoEditButton" disabled>Deshacer
+                última edición</button>
             </div>
           </section>
           <!-- Main Split Architecture: Diagnostics & AI Audit (Left) | Structured Clinical Note (Right) -->
@@ -1290,7 +1377,7 @@
                     <div class="flex items-center gap-space-sm flex-shrink-0">
                       <span
                         class="px-space-xs py-0.5 rounded font-label-sm text-label-sm bg-surface-container text-on-surface-variant font-medium hidden sm:inline-flex">98.4%
-                        Certeza IA • Aceptado</span>
+                        Confianza estimada por IA • sugerencia no validada</span>
                       <span
                         class="chevron-icon material-symbols-outlined text-primary text-xl transition-transform duration-300 transform rotate-180">expand_more</span>
                     </div>
@@ -1316,7 +1403,7 @@
                           <span class="flex items-center gap-1"><span
                               class="material-symbols-outlined text-sm text-secondary">record_voice_over</span> Scribe
                             IA v4.2 sincronizado</span>
-                          <span class="text-secondary font-medium">Validado por clínica</span>
+                          <span class="text-amber-800 font-medium">Pendiente de revisión profesional</span>
                         </div>
                       </div>
                     </div>
@@ -1446,7 +1533,7 @@
                           <span class="flex items-center gap-1.5 text-on-surface font-medium"><span
                               class="material-symbols-outlined text-sm text-tertiary">category</span> CIE-10 propuestos:
                             I20.8 (Angina) y I10 (Hipertensión)</span>
-                          <span class="text-primary font-semibold">Validado</span>
+                          <span class="text-amber-800 font-semibold">Sugerido por IA · pendiente de revisión</span>
                         </div>
                       </div>
                     </div>
@@ -1592,9 +1679,9 @@
                 <div class="flex items-center gap-space-xs w-full md:w-auto justify-end">
                   <button
                     class="w-full md:w-auto px-space-lg py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-lg text-label-lg font-semibold shadow-md transition-all flex items-center justify-center gap-2"
-                    onclick="signAndTransmit(this)" type="button">
+                    onclick="window.openSignatureFlow()" type="button" id="signatureExecutionButton">
                     <span class="material-symbols-outlined text-xl">draw</span>
-                    <span class="">Firmar &amp; Transmitir FHIR</span>
+                    <span class="">Continuar a firma simulada</span>
                   </button>
                 </div>
               </div>
@@ -1609,9 +1696,9 @@
             class="bg-inverse-surface text-inverse-on-surface px-space-lg py-space-md rounded-xl shadow-xl flex items-center gap-space-md">
             <span class="material-symbols-outlined text-secondary text-2xl">check_circle</span>
             <div class="flex flex-col">
-              <span class="font-label-lg text-label-lg font-semibold">Nota Médica Firmada Exitosamente</span>
-              <span class="font-body-sm text-body-sm text-outline-variant">Transmitida al EHR San Lucas vía FHIR Bundle
-                v4.0.1</span>
+              <span class="font-label-lg text-label-lg font-semibold">Confirmación de firma simulada</span>
+              <span class="font-body-sm text-body-sm text-outline-variant">No se realizó firma legal ni transmisión a un
+                EHR.</span>
             </div>
           </div>
         </div>
@@ -1632,16 +1719,16 @@
               </button>
             </div>
             <p class="font-body-sm text-body-sm text-on-surface-variant">
-              Va a asentar legalmente el acto médico para <strong>Carlos E. Restrepo (HC #884920)</strong>. Esta acción
-              sella la transcripción procesada y emitirá las órdenes de laboratorio y medicamentos al sistema
-              hospitalario.
+              Confirmación de demostración para <strong>Carlos E. Restrepo (HC #884920)</strong>. En este prototipo, el
+              botón solo muestra el estado simulado: no crea una firma legal ni transmite información u órdenes.
             </p>
             <div class="p-space-sm rounded-lg bg-surface-container flex items-center justify-between">
               <div class="flex items-center gap-space-xs">
                 <span class="material-symbols-outlined text-secondary text-base">fingerprint</span>
-                <span class="font-label-md text-label-md text-on-surface font-medium">Token Biométrico Activo</span>
+                <span class="font-label-md text-label-md text-on-surface font-medium">Token biométrico de
+                  demostración</span>
               </div>
-              <span class="font-label-sm text-label-sm text-secondary font-semibold">Autorizado</span>
+              <span class="font-label-sm text-label-sm text-secondary font-semibold">Estado ilustrativo</span>
             </div>
             <div class="flex items-center justify-end gap-space-xs pt-space-xs">
               <button
@@ -1652,7 +1739,7 @@
               <button
                 class="px-space-md py-1.5 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary font-semibold transition-all"
                 onclick="confirmSignature()" type="button">
-                Sellar Digitalmente
+                Confirmar firma simulada
               </button>
             </div>
           </div>
@@ -1668,9 +1755,7 @@
 
 
 
-    <a href="#resumen-v1"
-      class="fixed bottom-4 right-4 z-[60] flex items-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-xl px-3 py-2 shadow-md text-sm font-semibold hover:bg-slate-50"><span
-        class="material-symbols-outlined text-[18px]">compare</span>Comparar con versión anterior</a>
+
   </section>
   <section data-screen="pacientes" data-title="Expediente clínico"
     class="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen" hidden>
@@ -2428,9 +2513,7 @@
 
 
 
-    <a href="#pacientes-v1"
-      class="fixed bottom-4 right-4 z-[60] flex items-center gap-2 bg-white border border-slate-300 text-slate-700 rounded-xl px-3 py-2 shadow-md text-sm font-semibold hover:bg-slate-50"><span
-        class="material-symbols-outlined text-[18px]">compare</span>Comparar con versión anterior</a>
+
   </section>
   <section data-screen="agentes" data-title="Agentes y plantillas"
     class="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen" hidden>
@@ -2447,8 +2530,7 @@
             data-path="consulta-en-vivo" href="#consulta" title="Consulta en Vivo">
             <span class="material-symbols-outlined text-2xl">mic</span>
             <span class="text-[11px] font-medium leading-none mt-1.5">Consulta</span></a>
-          <a
-            class="w-16 h-16 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex flex-col items-center justify-center py-2 px-1 text-xs font-medium transition-colors group"
+          <a class="w-16 h-16 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 flex flex-col items-center justify-center py-2 px-1 text-xs font-medium transition-colors group"
             data-path="resumen-y-validacion" href="#resumen" title="Resumen y Validación">
             <span class="material-symbols-outlined text-2xl">description</span>
             <span class="text-[11px] font-medium leading-none mt-1.5">Resumen</span></a>
@@ -2456,7 +2538,8 @@
             data-path="expediente-pacientes" href="#pacientes" title="Expediente Pacientes">
             <span class="material-symbols-outlined text-2xl">folder_shared</span>
             <span class="text-[11px] font-medium leading-none mt-1.5">Pacientes</span></a>
-          <a  aria-current="page" class="w-16 h-16 rounded-xl bg-[#1D4ED8] text-white shadow-md flex flex-col items-center justify-center py-2 px-1 text-xs font-medium transition-all"
+          <a aria-current="page"
+            class="w-16 h-16 rounded-xl bg-[#1D4ED8] text-white shadow-md flex flex-col items-center justify-center py-2 px-1 text-xs font-medium transition-all"
             data-path="personalizacion-y-agentes" href="#agentes" title="Personalización y Agentes">
             <span class="material-symbols-outlined text-2xl text-white">smart_toy</span>
             <span class="text-[11px] font-medium text-white leading-none mt-1.5">Agentes</span></a>
@@ -3988,8 +4071,9 @@
                   <span class="material-symbols-outlined text-sm">check</span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-label-sm text-label-sm font-semibold text-on-surface">1. Transcripción Scribe</span>
-                  <span class="font-body-sm text-body-sm text-outline">18m 42s procesados</span>
+                  <span class="font-label-sm text-label-sm font-semibold text-on-surface" id="pipelineStage1">1.
+                    Transcripción simulada</span>
+                  <span class="font-body-sm text-body-sm text-outline">Generada · requiere revisión</span>
                 </div>
               </div>
               <div class="h-0.5 flex-1 bg-secondary hidden md:block opacity-40"></div>
@@ -3999,9 +4083,10 @@
                   <span class="material-symbols-outlined text-sm">assignment_turned_in</span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-label-sm text-label-sm font-semibold text-primary">2. Validación de Agentes
-                    (Activa)</span>
-                  <span class="font-body-sm text-body-sm text-primary font-medium">Revisión clínica requerida</span>
+                  <span class="font-label-sm text-label-sm font-semibold text-primary" id="pipelineStage2">2. Revisión
+                    clínica pendiente</span>
+                  <span class="font-body-sm text-body-sm text-primary font-medium" id="pipelineStage2Detail">Revise
+                    sugerencias y discrepancias</span>
                 </div>
               </div>
               <div class="h-0.5 flex-1 bg-outline-variant hidden md:block opacity-40"></div>
@@ -4011,9 +4096,10 @@
                   <span class="material-symbols-outlined text-sm">verified</span>
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-label-sm text-label-sm font-semibold text-on-surface-variant">3. Firma Digital y
-                    Despacho HL7</span>
-                  <span class="font-body-sm text-body-sm text-outline">Pendiente de autorización</span>
+                  <span class="font-label-sm text-label-sm font-semibold text-on-surface-variant" id="pipelineStage3">3.
+                    Firma (paso separado)</span>
+                  <span class="font-body-sm text-body-sm text-outline" id="pipelineStage3Detail">Bloqueada hasta
+                    completar la revisión</span>
                 </div>
               </div>
             </div>
@@ -4446,7 +4532,7 @@
               class="bg-inverse-surface text-inverse-on-surface px-space-lg py-space-md rounded-xl shadow-xl flex items-center gap-space-md">
               <span class="material-symbols-outlined text-secondary text-2xl">check_circle</span>
               <div class="flex flex-col">
-                <span class="font-label-lg text-label-lg font-semibold">Nota Médica Firmada Exitosamente</span>
+                <span class="font-label-lg text-label-lg font-semibold">Confirmación de firma simulada</span>
                 <span class="font-body-sm text-body-sm text-outline-variant">Transmitida al EHR San Lucas vía FHIR
                   Bundle v4.0.1</span>
               </div>
@@ -5207,6 +5293,8 @@
       let secondsElapsed = 0;
       let isRunning = false;
       let isPaused = false;
+      let hasConsent = false;
+      let isClinicallyValidated = false;
 
       // Element references
       const timerElem = document.getElementById('sessionTimer');
@@ -5303,11 +5391,11 @@
 
           sessionPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75";
           sessionDot.className = "relative inline-flex rounded-full h-3 w-3 bg-red-600";
-          sessionStatusBadge.textContent = "Sesión en Curso • Grabando en Vivo";
+          sessionStatusBadge.textContent = "Simulación en curso • audio ficticio, sin captura real";
 
           transPing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75";
           transDot.className = "relative inline-flex rounded-full h-2 w-2 bg-blue-600";
-          transStatusText.textContent = "Audio Stream en Directo";
+          transStatusText.textContent = "Flujo de audio simulado";
           visualizerBars.className = "flex items-center gap-[3px] h-5 px-1.5 bg-blue-50 rounded border border-blue-200 opacity-100";
           aiAgentState.textContent = "3 Agentes en Línea";
           soapAgentCount.textContent = "3 Agentes en Línea";
@@ -5348,7 +5436,9 @@
       }
 
       window.startSimulation = function () {
+        console.log(hasConsent)
         if (isRunning) return;
+        if (!hasConsent) {window.openConsent(); return;}
         isRunning = true;
         isPaused = false;
         setVisualActive(true);
@@ -5362,12 +5452,23 @@
       };
 
       window.toggleSimulation = function () {
+        
         if (!isRunning) {
           window.startSimulation();
         } else {
           window.pauseSimulation();
         }
       };
+
+      window.openConsent = function () {document.getElementById('consentModal').style.display = "flex"; document.getElementById('consentCheckbox').checked = false;};
+      window.cancelConsent = function () {document.getElementById('consentModal').style.display = "none"; document.getElementById('consentCheckbox').checked = false; document.getElementById('consentContinueButton').disabled = true;};
+      document.getElementById('consentCheckbox').addEventListener('change', function () {document.getElementById('consentContinueButton').disabled = !this.checked;});
+      window.confirmConsentAndStart = function () {if (!document.getElementById('consentCheckbox').checked) return; hasConsent = true; document.getElementById('consentModal').style.display = "none"; window.startSimulation();};
+
+      const resetButtons = document.querySelectorAll('button[onclick="window.resetSimulation()"]');
+      window.resetSimulation = function () {document.getElementById('resetConfirmModal').hidden = false;};
+      window.cancelResetSimulation = function () {document.getElementById('resetConfirmModal').hidden = true;};
+      window.confirmResetSimulation = function () {document.getElementById('resetConfirmModal').hidden = true; resetSimulationCore();};
 
       window.pauseSimulation = function () {
         if (!isRunning) return;
@@ -5389,13 +5490,14 @@
         }
       };
 
-      window.resetSimulation = function () {
+      function resetSimulationCore() {
         if (timerInterval) clearInterval(timerInterval);
         if (autoStepTimeout) clearTimeout(autoStepTimeout);
         isRunning = false;
         isPaused = false;
         currentStep = 0;
         secondsElapsed = 0;
+        hasConsent = false;
 
         if (timerElem) timerElem.textContent = "00:00";
         setVisualActive(false);
@@ -5514,7 +5616,7 @@
 
           // SOAP A se actualiza con CIE-10
           soapConfidenceA.className = "font-label-sm text-[10px] bg-purple-100 text-purple-900 px-1.5 py-0.5 rounded font-bold";
-          soapConfidenceA.textContent = "CIE-10 Validado (96%)";
+          soapConfidenceA.textContent = "Sugerencia IA · confianza 96% · pendiente";
           soapFieldAnalisis.innerHTML = `
           <div class="bg-white p-2 rounded border border-blue-200 flex items-center justify-between gap-2 shadow-xs">
             <div class="flex flex-col">
@@ -5522,7 +5624,7 @@
                 <span class="font-bold text-[11px] bg-blue-100 text-blue-800 px-1.5 rounded">I20.8</span>
                 <span class="font-bold text-xs text-on-surface">Angina de pecho atípica / Sospecha SCASEST</span>
               </div>
-              <span class="text-[10px] text-blue-700 font-semibold">Agente Diagnóstico: Certeza 96%</span>
+              <span class="text-[10px] text-blue-700 font-semibold">Sugerencia de IA: confianza estimada 96% · no es aprobación clínica</span>
             </div>
             <span class="material-symbols-outlined text-emerald-600 text-[18px]">verified</span>
           </div>
@@ -5541,7 +5643,7 @@
 
           // SOAP P se actualiza con prescripción & órdenes
           soapConfidenceP.className = "font-label-sm text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold";
-          soapConfidenceP.textContent = "Aprobado sin Interacciones";
+          soapConfidenceP.textContent = "Sugerencia automatizada · revisión pendiente";
           soapFieldPlan.innerHTML = `
           <div class="flex flex-col gap-1.5 w-full">
             <div class="text-xs">
@@ -5564,7 +5666,7 @@
           triggerHighlight(soapBoxP);
 
           // Terminar status visual
-          sessionStatusBadge.textContent = "Consulta Completada • SOAP 100% Diligenciado";
+          sessionStatusBadge.textContent = "Generación completada • revisión profesional pendiente";
           sessionStatusBadge.className = "font-label-md text-xs text-emerald-700 font-bold";
           btnMainLabel.textContent = "Transferir SOAP al EHR";
           btnMainAction.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-label-md text-xs font-bold shadow-md transition-all";
@@ -5586,6 +5688,35 @@
 
       window.saveAndTransferSOAP = function () {
         window.showToast("SOAP guardado como borrador. Revísalo y fírmalo en Resumen."); setTimeout(function () {location.hash = "#resumen";}, 900);
+      };
+
+      window.markClinicalValidated = function () {
+        if (!document.getElementById('reviewAcknowledgement').checked) {window.showToast('Revise y confirme las discrepancias antes de validar.'); return;}
+        isClinicallyValidated = true;
+        const status = document.getElementById('clinicalValidationStatus');
+        status.textContent = 'Paso de revisión marcado como completado en la demostración; esto no acredita una validación clínica real. La firma simulada es una etapa separada.';
+        status.className = 'text-xs text-emerald-800';
+        document.getElementById('clinicalValidationButton').textContent = 'Revisión simulada completada';
+        document.getElementById('clinicalValidationButton').disabled = true;
+        document.getElementById('pipelineStage2').textContent = '2. Revisión clínica confirmada';
+        document.getElementById('pipelineStage2Detail').textContent = 'Confirmada en esta demostración';
+        document.getElementById('pipelineStage3Detail').textContent = 'Disponible para confirmación simulada';
+        const signButton = document.getElementById('openSignatureButton');
+        if (signButton) signButton.disabled = false;
+      };
+      window.openSignatureFlow = function () {
+        if (!isClinicallyValidated) {window.showToast('Primero complete la revisión y validación clínica.'); return;}
+        document.getElementById('signatureModal').classList.remove('hidden');
+      };
+      window.undoLastEdit = function () {
+        const versions = JSON.parse(localStorage.getItem('scribemed-demo-edit-versions') || '[]');
+        if (versions.length < 2) return;
+        versions.pop(); const previous = versions[versions.length - 1];
+        previous.forEach(function (item) {const field = document.querySelector('[data-demo-edit-id="' + CSS.escape(item.id) + '"]'); if (field) {if ('value' in field) field.value = item.value; else field.innerHTML = item.value;} });
+        localStorage.setItem('scribemed-demo-edit-versions', JSON.stringify(versions));
+        window.dispatchEvent(new Event('scribemed:undo'));
+        document.getElementById('undoEditButton').disabled = versions.length < 2;
+        window.showToast('Se restauró la versión anterior de demostración.');
       };
 
     })();
@@ -5635,9 +5766,11 @@
     }
 
     function signAndTransmit(btn) {
-      btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-xl">sync</span><span>Transmitiendo...</span>';
+      if (!document.getElementById("clinicalValidationButton").disabled) {window.showToast("Complete la validación clínica antes de firmar."); return;}
+      btn.disabled = true;
+      btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-xl">sync</span><span>Procesando simulación...</span>';
       setTimeout(() => {
-        btn.innerHTML = '<span class="material-symbols-outlined text-xl">check</span><span>Firmado y Sincronizado</span>';
+        btn.innerHTML = '<span class="material-symbols-outlined text-xl">check</span><span>Firma simulada confirmada</span>';
         btn.classList.remove('bg-primary');
         btn.classList.add('bg-secondary', 'cursor-default');
 
@@ -5651,8 +5784,9 @@
 
     function confirmSignature() {
       document.getElementById('signatureModal').classList.add('hidden');
-      const mainBtn = document.querySelector('button[onclick*="signAndTransmit"]');
-      if (mainBtn) signAndTransmit(mainBtn);
+      const mainBtn = document.getElementById('signatureExecutionButton');
+      if (!document.getElementById("clinicalValidationButton").disabled) {window.showToast("La validación clínica sigue pendiente."); return;}
+      if (mainBtn) {signAndTransmit(mainBtn); document.getElementById('pipelineStage3').textContent = '3. Firma simulada confirmada'; document.getElementById('pipelineStage3Detail').textContent = 'Sin firma legal ni transmisión';}
     }
 
 
@@ -5692,6 +5826,31 @@
       });
     });
 
+
+    (function () {
+      // Local undo history for editable demonstration fields.
+      const versionKey = 'scribemed-demo-edit-versions';
+      const editable = Array.from(document.querySelectorAll('textarea, input[type="text"], [contenteditable="true"]'));
+      editable.forEach((field, index) => {field.dataset.demoEditId = field.dataset.demoEditId || ('field-' + index);});
+      const readVersion = () => editable.map(field => ({id: field.dataset.demoEditId, value: ('value' in field) ? field.value : field.innerHTML}));
+      let versions = [];
+      try {versions = JSON.parse(localStorage.getItem(versionKey) || '[]');} catch (_) {versions = [];}
+      if (versions.length) {
+        versions[versions.length - 1].forEach(item => {const field = editable.find(candidate => candidate.dataset.demoEditId === item.id); if (field) {if ('value' in field) field.value = item.value; else field.innerHTML = item.value;} });
+      } else {versions = [readVersion()];}
+      const undoButton = document.getElementById('undoEditButton');
+      const saveVersions = () => {try {localStorage.setItem(versionKey, JSON.stringify(versions.slice(-20)));} catch (_) { } if (undoButton) undoButton.disabled = versions.length < 2;};
+      window.addEventListener('scribemed:undo', () => {try {versions = JSON.parse(localStorage.getItem(versionKey) || '[]');} catch (_) {versions = [];} saveVersions();});
+      let versionTimer;
+      editable.forEach(field => field.addEventListener('input', () => {clearTimeout(versionTimer); versionTimer = setTimeout(() => {versions.push(readVersion()); versions = versions.slice(-20); saveVersions(); const status = document.getElementById('editRecoveryStatus'); if (status) status.textContent = 'Cambios guardados localmente en este navegador. Puede deshacer la última edición.';}, 250);}));
+      saveVersions();
+    })();
+
+    (function () {
+      const acknowledgement = document.getElementById('reviewAcknowledgement');
+      const validateButton = document.getElementById('clinicalValidationButton');
+      if (acknowledgement && validateButton) acknowledgement.addEventListener('change', function () {validateButton.disabled = !this.checked;});
+    })();
 
     (function () {
       // Toggle proactive assistance visually
